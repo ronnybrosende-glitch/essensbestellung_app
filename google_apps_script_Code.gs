@@ -491,17 +491,53 @@ function sichereBlaetter(ss) {
 }
 
 // ──────────────────────────────────────────────
-// 11a. GET-Endpunkt – liefert Bestellungen für Apartment
+// 10b. PIN-Validierung – prüft Apartment+PIN gegen Bewohner-Tab
+// ──────────────────────────────────────────────
+function validierePin(ss, apt, pin) {
+  var sh = ss.getSheetByName("Bewohner");
+  if (!sh || sh.getLastRow() < 2) return false;
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === apt &&
+        String(rows[i][1]).trim() === pin) return true;
+  }
+  return false;
+}
+
+// ──────────────────────────────────────────────
+// 11a. GET-Endpunkt – Bewohnerliste ODER Bestellungen für Apartment
 // ──────────────────────────────────────────────
 function doGet(e) {
   try {
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var ss     = SpreadsheetApp.getActiveSpreadsheet();
     sichereBlaetter(ss);
+    var action = String((e.parameter && e.parameter.action) || "").trim();
+    var apt    = String((e.parameter && e.parameter.apartment) || "").trim();
+    var pin    = String((e.parameter && e.parameter.pin) || "").trim();
+
+    // ── Action: getBewohner → Apartment+Name (KEIN PIN!) zurückgeben
+    if (action === "getBewohner") {
+      var bwSheet = ss.getSheetByName("Bewohner");
+      if (!bwSheet || bwSheet.getLastRow() < 2) return json_ok([]);
+      var bwRows = bwSheet.getRange(2, 1, bwSheet.getLastRow() - 1, 3).getValues();
+      var bwOut = [];
+      bwRows.forEach(function(r) {
+        var a = String(r[0] || "").trim();
+        var n = String(r[2] || "").trim();
+        if (a && n) bwOut.push({ apartment: a, name: n });
+      });
+      return json_ok(bwOut);
+    }
+
+    // ── Standard: Bestellungen für Apartment abrufen (PIN-Validierung)
+    if (!apt) return json_err("Kein Apartment angegeben");
+    if (!pin) return json_err("Kein PIN angegeben");
+    if (!validierePin(ss, apt, pin)) return json_err("Ungültiges Apartment oder falscher PIN");
+
     var sheet = ss.getSheetByName("Bestellungen");
-    var apt   = String((e.parameter && e.parameter.apartment) || "").trim();
     var rows  = sheet.getDataRange().getValues();
     var out   = [];
-    if (apt && rows.length > 1) {
+    if (rows.length > 1) {
       for (var i = 1; i < rows.length; i++) {
         if (String(rows[i][4]).trim() !== apt) continue;
         out.push({
@@ -534,8 +570,13 @@ function doPost(e) {
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
     sichereBlaetter(ss);
 
+    // ── Sicherheit: PIN+Apartment validieren bevor etwas gespeichert wird
+    var apt = String(data.apartment || "").trim();
+    var pin = String(data.pin       || "").trim();
+    if (!apt || !pin) return json_err("Apartment und PIN erforderlich");
+    if (!validierePin(ss, apt, pin)) return json_err("Ungültiges Apartment oder falscher PIN");
+
     var sheet = ss.getSheetByName("Bestellungen");
-    var apt   = String(data.apartment || "").trim();
     var kw    = Number(data.kw);
     var jahr  = Number(data.jahr);
     var typ   = data.aenderung ? "Änderung" : "Erstbestellung";

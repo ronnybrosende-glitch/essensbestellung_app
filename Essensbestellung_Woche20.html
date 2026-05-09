@@ -365,7 +365,7 @@ input[type=text]:focus, input[type=tel]:focus {
     <label for="pin" style="margin-top:10px;display:block">5-stelliger Code:</label>
     <input type="tel" id="pin" maxlength="5" inputmode="numeric" placeholder="-----">
     <div class="fehler" id="err_pin">Bitte Apartment-Nr. und 5-stelligen Code eingeben.</div>
-    <button class="btn-voll btn-weiter" onclick="pinBestaetigen()">Bestätigen &#x279C;</button>
+    <button id="btn-login" class="btn-voll btn-weiter" onclick="pinBestaetigen()">Bestätigen &#x279C;</button>
   </div>
 </div>
 
@@ -479,9 +479,9 @@ var DEADLINE_STUNDE = 16;
 // Google Apps Script Web App URL – nach Deployment hier eintragen:
 var SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz7xbmoinDd_qORv2QMHBcYwzIB4JgZ3mf4C-fSyj1P8f1GbqLUKhu6ljx2i_Lp1pTUWQ/exec";
 
-// Bewohner-Datenquelle: Online-CSV (Google Sheets veröffentlicht) ODER lokal
-// Nach Schritt 5 der Anleitung URL aus Google Sheets eintragen:
-var BEWOHNER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHFZzhkI6vrlTblGWSBQ3W3uU7rjt8DhnzC8g-N6QY-Ht2AXZbBPb-5oNZd5nM73wP2DzJyMb11gY-/pub?gid=0&single=true&output=csv";
+// Sicherheitshinweis: Bewohnerdaten werden direkt aus dem GAS-Backend geladen.
+// Die öffentliche CSV-Veröffentlichung im Google Sheet bitte deaktivieren
+// (Datei → Im Web veröffentlichen → Veröffentlichung beenden).
 
 var BEWOHNER = [];           // wird aus CSV geladen
 var BEWOHNER_GELADEN = false;
@@ -544,58 +544,29 @@ function initApp() {
 
 function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 
-function parseBewohnerCSV(text) {
-  BEWOHNER = [];
-  var zeilen = text.split(/\r?\n/);
-  for (var i = 1; i < zeilen.length; i++) {
-    var z = zeilen[i].trim();
-    if (!z) continue;
-    var teile = z.split(",");
-    var apt  = (teile[0] || "").trim();
-    var pin  = (teile[1] || "").trim();
-    var name = teile.slice(2).join(",").trim();
-    if (apt && pin && name) BEWOHNER.push({apartment: apt, pin: pin, name: name});
-  }
-  BEWOHNER_GELADEN = true;
-}
-
 function ladeBewohner() {
-  // Priorität 1: Online-CSV aus Google Sheets (unabhängig vom lokalen PC)
-  var onlineUrl = (typeof BEWOHNER_CSV_URL !== "undefined" && BEWOHNER_CSV_URL && BEWOHNER_CSV_URL !== "XXXX")
-    ? BEWOHNER_CSV_URL : null;
-
-  if (onlineUrl) {
-    fetch(onlineUrl, {cache: "no-store"})
-      .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
-      .then(function(text){ parseBewohnerCSV(text); })
-      .catch(function(e){
-        console.warn("Online-Bewohnerliste nicht erreichbar, lade lokal:", e.message);
-        ladeBewohnerLokal();
+  // Priorität 1: Bewohnerliste sicher über GAS-Backend abrufen (keine PINs übertragen)
+  if (SHEETS_WEBHOOK_URL && SHEETS_WEBHOOK_URL !== "XXXX") {
+    fetch(SHEETS_WEBHOOK_URL + "?action=getBewohner", {cache: "no-store"})
+      .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(j) {
+        if (!j || !j.ok || !Array.isArray(j.data)) throw new Error("Keine Daten vom Server");
+        BEWOHNER = j.data.map(function(row) {
+          return { apartment: String(row.apartment || "").trim(), name: String(row.name || "").trim(), pin: "" };
+        });
+        BEWOHNER_GELADEN = true;
+      })
+      .catch(function(e) {
+        console.warn("Bewohnerliste via GAS nicht erreichbar:", e.message);
+        var err = document.getElementById("err_pin");
+        err.textContent = "Verbindung zum Server fehlgeschlagen. Bitte Seite neu laden.";
+        err.style.display = "block";
       });
   } else {
-    // Priorität 2: Lokale CSV (Fallback / Entwicklungsmodus)
-    ladeBewohnerLokal();
+    var err = document.getElementById("err_pin");
+    err.textContent = "Keine Server-URL konfiguriert. Bitte Administrator informieren.";
+    err.style.display = "block";
   }
-}
-
-function ladeBewohnerLokal() {
-  fetch("bewohner.csv", {cache: "no-store"})
-    .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
-    .then(function(text){ parseBewohnerCSV(text); })
-    .catch(function(e){
-      var err = document.getElementById("err_pin");
-      err.textContent = "Bewohnerliste konnte nicht geladen werden (" + e.message + "). Bitte Seite neu laden.";
-      err.style.display = "block";
-    });
-}
-
-function findeBewohner(apt, pin) {
-  var a = apt.toLowerCase().trim();
-  for (var i = 0; i < BEWOHNER.length; i++) {
-    var b = BEWOHNER[i];
-    if (b.apartment.toLowerCase() === a && b.pin === pin) return b;
-  }
-  return null;
 }
 
 function montagVon(d){var x=new Date(d);x.setHours(0,0,0,0);var dow=x.getDay()||7;x.setDate(x.getDate()-dow+1);return x;}
@@ -614,7 +585,9 @@ function speichern(){if(!state.pin||!state.apartment)return;try{localStorage.set
 // Lädt Bestellungen direkt aus dem Google Sheet via GAS doGet
 function ladeAusSheet(callback) {
   if (!SHEETS_WEBHOOK_URL || SHEETS_WEBHOOK_URL === "XXXX") { callback(false); return; }
-  var url = SHEETS_WEBHOOK_URL + "?apartment=" + encodeURIComponent(state.apartment);
+  var url = SHEETS_WEBHOOK_URL
+    + "?apartment=" + encodeURIComponent(state.apartment)
+    + "&pin="       + encodeURIComponent(state.pin);
   fetch(url, {cache: "no-store"})
     .then(function(r){ return r.json(); })
     .then(function(j){
@@ -666,12 +639,57 @@ function pinBestaetigen() {
   var err = document.getElementById("err_pin");
   if (!apt) { err.textContent = "Bitte Apartment-Nr. eingeben."; err.style.display = "block"; return; }
   if (!/^\d{5}$/.test(pin)) { err.textContent = "Bitte genau 5 Ziffern als Code eingeben."; err.style.display = "block"; return; }
-  if (!BEWOHNER_GELADEN) { err.textContent = "Bewohnerdaten werden noch geladen — bitte einen Moment warten."; err.style.display = "block"; return; }
-  var b = findeBewohner(apt, pin);
-  if (!b) { err.textContent = "Apartment-Nr. und Code passen nicht zusammen."; err.style.display = "block"; return; }
-  err.style.display = "none";
-  state.pin = pin; state.name = b.name; state.apartment = b.apartment;
-  laden(); zeigeWochenUebersicht();
+
+  err.textContent = "Wird geprüft …"; err.style.display = "block";
+  document.getElementById("btn-login") && (document.getElementById("btn-login").disabled = true);
+
+  // PIN-Validierung + Bestellungs-Abruf in einem GAS-Request
+  var url = SHEETS_WEBHOOK_URL
+    + "?apartment=" + encodeURIComponent(apt)
+    + "&pin="       + encodeURIComponent(pin);
+
+  fetch(url, {cache: "no-store"})
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      document.getElementById("btn-login") && (document.getElementById("btn-login").disabled = false);
+      if (!j || !j.ok) {
+        err.textContent = "Apartment-Nr. und Code passen nicht zusammen.";
+        err.style.display = "block";
+        return;
+      }
+      err.style.display = "none";
+
+      // Name aus vorgeladener Bewohnerliste
+      var b = null;
+      for (var i = 0; i < BEWOHNER.length; i++) {
+        if (String(BEWOHNER[i].apartment).trim().toLowerCase() === apt.toLowerCase()) { b = BEWOHNER[i]; break; }
+      }
+      state.pin = pin; state.name = b ? b.name : apt; state.apartment = apt;
+
+      // Bereits vorhandene Bestellungen aus GAS-Antwort laden
+      var wahlMap = {"Hauptmenü":"h","Alternative 1":"a1","Alternative 2":"a2","Kein Essen":"k"};
+      var tagMap  = {"Montag":1,"Dienstag":2,"Mittwoch":3,"Donnerstag":4,"Freitag":5,"Samstag":6,"Sonntag":7};
+      state.bestellungen = {}; state.beilagen = {}; state.bestaetigt = []; state.gesendet = {};
+      (j.data || []).forEach(function(row) {
+        var kw = Number(row.kw), t = tagMap[row.wochentag];
+        if (!kw || !t) return;
+        if (!state.bestellungen[kw]) state.bestellungen[kw] = {};
+        if (!state.beilagen[kw])     state.beilagen[kw]     = {};
+        state.bestellungen[kw][t] = wahlMap[row.menueTyp] || "";
+        state.beilagen[kw][t]     = { vor: row.vorspeise === "Ja", nach: row.nachspeise === "Ja" };
+        if (state.bestaetigt.indexOf(kw) < 0) state.bestaetigt.push(kw);
+      });
+      Object.keys(state.bestellungen).forEach(function(kw) {
+        state.gesendet[kw] = snapshotKW(Number(kw));
+      });
+      speichern();
+      zeigeWochenUebersicht();
+    })
+    .catch(function(e) {
+      document.getElementById("btn-login") && (document.getElementById("btn-login").disabled = false);
+      err.textContent = "Verbindungsfehler – bitte Internetverbindung prüfen.";
+      err.style.display = "block";
+    });
 }
 function zurueckZuPin(){
   state = {pin:"",name:"",apartment:"",bestellungen:{},beilagen:{},bestaetigt:[],gesendet:{},aktKW:null,aktJahr:null,aktTag:null};
@@ -858,7 +876,7 @@ function bauSheetsPayload(aenderung) {
     });
   }
   return {
-    apartment: state.apartment, name: state.name,
+    apartment: state.apartment, pin: state.pin, name: state.name,
     kw: kw, jahr: state.aktJahr, aenderung: aenderung, tage: tage
   };
 }
