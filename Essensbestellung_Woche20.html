@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
+<meta name="theme-color" content="#03ACB3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Olgahaus Bestellung">
+<meta name="format-detection" content="telephone=no">
+<title>Essensbestellung – Olgahaus DMO</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Olgahaus Essensbestellung","short_name":"Olgahaus","display":"standalone","theme_color":"%2303ACB3","background_color":"%23FAF9F6","start_url":"./Essensbestellung_Woche20.html"}'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Nunito:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-gradient: linear-gradient(135deg, #8DC73F 0%, #03ACB3 100%);
+  --brand-gruen: #8DC73F;
+  --brand-gruen-hover: #7AB232;
+  --brand-tuerkis: #03ACB3;
+  --brand-tuerkis-hover: #028E94;
+  --brand-anthrazit: #292C2D;
+  --brand-stein: #D8D2C4;
+  --brand-stein-light: #F7F5EE;
+  --brand-apricot: #F1C9A5;
+  --brand-terrakotta: #C48A6A;
+  --brand-tuerkis-light: #E6F7F8;
+  --brand-tuerkis-soft: #D5F0F2;
+  --brand-gruen-light: #F2F9E6;
+  --brand-apricot-light: #FBE9D9;
+}
+
+* {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+button, .essen-btn, .toggle-btn, .woche-karte {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input { -webkit-user-select: text; user-select: text; }
+body {
+  font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  font-weight: 500; font-size: 20px;
+  background: #FAF9F6; color: var(--brand-anthrazit);
+  -webkit-text-size-adjust: 100%;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Header mit Logo-Bereich ── */
+.kopf {
+  background: var(--brand-gradient);
+  color: white; text-align: center;
+  padding: 18px 18px 22px;
+  padding-top: calc(18px + env(safe-area-inset-top));
+}
+.logo-zeile {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-bottom: 6px;
+}
+.logo-symbol {
+  width: 68px; height: 68px;
+  background: white; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--brand-tuerkis); font-size: 48px; line-height: 1;
+  font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  padding-bottom: 4px;
+}
+.logo-wort {
+  font-family: 'Comfortaa', 'Nunito', sans-serif;
+  font-weight: 700; font-size: 34px;
+  letter-spacing: -0.5px; color: white;
+}
+.claim {
+  font-size: 11px; letter-spacing: 2px; opacity: 0.85;
+  margin-bottom: 14px; font-weight: 600;
+}
+.kopf h1 {
+  font-family: 'Comfortaa', 'Nunito', sans-serif;
+  font-weight: 700; font-size: 24px; margin-bottom: 4px;
+}
+.kopf-sub { font-size: 16px; opacity: 0.9; font-weight: 500; }
+
+.wrap { max-width: 680px; margin: 0 auto; padding: 14px 12px 60px; }
+
+.karte {
+  background: white; border-radius: 14px; padding: 26px 22px;
+  margin-bottom: 16px; box-shadow: 0 3px 10px rgba(0,0,0,.08);
+}
+
+h2 {
+  font-family: 'Comfortaa', 'Nunito', sans-serif;
+  font-weight: 700; font-size: 23px;
+  color: var(--brand-tuerkis);
+  margin-bottom: 14px;
+  border-bottom: 3px solid var(--brand-gruen);
+  padding-bottom: 10px;
+}
+
+label {
+  display: block; font-size: 19px; font-weight: 700;
+  color: var(--brand-anthrazit); margin-bottom: 8px;
+}
+input[type=text], input[type=tel] {
+  width: 100%; padding: 14px 12px; font-size: 22px; text-align: center;
+  border: 3px solid var(--brand-stein); border-radius: 10px;
+  margin-bottom: 14px; font-weight: 700; color: var(--brand-anthrazit);
+  font-family: 'Nunito', sans-serif;
+}
+input[type=tel]#pin { letter-spacing: 6px; font-size: 26px; }
+input[type=text]:focus, input[type=tel]:focus {
+  border-color: var(--brand-tuerkis); outline: none;
+  box-shadow: 0 0 0 3px rgba(3,172,179,0.15);
+}
+
+.bewohner-box {
+  background: var(--brand-gradient); color: white;
+  border-radius: 12px; padding: 18px 20px; margin-bottom: 18px;
+}
+.bewohner-label { font-size: 14px; opacity: .9; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
+.bewohner-name {
+  font-family: 'Comfortaa', 'Nunito', sans-serif; font-weight: 700;
+  font-size: 24px; margin: 4px 0 2px;
+}
+.bewohner-apt { font-size: 17px; opacity: .95; font-weight: 500; }
+.test-warnung {
+  background: var(--brand-apricot-light); border: 2px solid var(--brand-terrakotta);
+  color: #8C5631; border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 14px; font-size: 16px;
+}
+
+.woche-karte {
+  display: block; width: 100%; padding: 18px;
+  background: white; border: 3px solid var(--brand-stein);
+  border-radius: 13px; margin-bottom: 12px; cursor: pointer; text-align: left;
+  transition: border-color .15s, background .15s;
+  font-family: 'Nunito', sans-serif;
+}
+.woche-karte:hover { border-color: var(--brand-tuerkis); background: var(--brand-tuerkis-light); }
+.woche-karte.bestaetigt { border-color: var(--brand-gruen); background: var(--brand-gruen-light); }
+.woche-titel {
+  font-family: 'Comfortaa', 'Nunito', sans-serif; font-weight: 700;
+  font-size: 21px; color: var(--brand-tuerkis); margin-bottom: 4px;
+}
+.woche-datum { font-size: 17px; color: #555; }
+.woche-status { font-size: 16px; margin-top: 8px; }
+.ok      { color: var(--brand-gruen-hover); font-weight: 700; }
+.pending { color: #888; }
+
+.tag-info { font-size: 16px; color: #666; margin-bottom: 6px; }
+.gesperrt-info {
+  border-radius: 10px; padding: 11px 14px; margin-bottom: 14px;
+  font-size: 17px; border: 2px solid; font-weight: 600;
+}
+.frist-ok     { background: var(--brand-gruen-light); border-color: var(--brand-gruen); color: #5A8523; }
+.frist-vorbei { background: var(--brand-apricot-light); border-color: var(--brand-terrakotta); color: #8C5631; }
+
+.beilage-block { margin-bottom: 16px; }
+.beilage-zeile {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border: 2px solid var(--brand-stein);
+  border-radius: 10px; margin-bottom: 8px; background: var(--brand-stein-light);
+  flex-wrap: wrap;
+}
+.beilage-label { font-weight: 700; color: var(--brand-anthrazit); font-size: 17px; min-width: 105px; }
+.beilage-name  { flex: 1; min-width: 0; font-size: 17px; color: var(--brand-anthrazit); word-break: break-word; }
+.beilage-name.gestrichen { text-decoration: line-through; color: #bbb; }
+.toggle-btn {
+  padding: 9px 14px; border: 2px solid var(--brand-gruen); border-radius: 8px;
+  background: var(--brand-gruen-light); color: #5A8523; font-size: 16px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  font-family: 'Nunito', sans-serif;
+}
+.toggle-btn.abbestellt {
+  border-color: var(--brand-terrakotta); background: var(--brand-apricot-light); color: #8C5631;
+}
+.toggle-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.waehle { font-size: 19px; font-weight: 700; color: var(--brand-anthrazit); margin-bottom: 12px; }
+.essen-btn {
+  display: block; width: 100%; padding: 16px 15px; margin-bottom: 11px;
+  background: white; border: 3px solid var(--brand-stein); border-radius: 13px;
+  font-size: 19px; text-align: left; cursor: pointer; line-height: 1.5;
+  font-family: 'Nunito', sans-serif;
+  transition: border-color .15s, background .15s;
+}
+.essen-btn:hover  { border-color: var(--brand-tuerkis); background: var(--brand-tuerkis-light); }
+.essen-btn.aktiv  { border-color: var(--brand-tuerkis); background: var(--brand-tuerkis-soft); }
+.essen-btn.kein   { border-color: var(--brand-terrakotta); background: var(--brand-apricot-light); }
+.essen-btn:disabled { cursor: default; opacity: .65; }
+
+.kopfzeile { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 6px; }
+
+.badge {
+  display: inline-block; font-size: 14px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px; color: white;
+  font-family: 'Nunito', sans-serif; letter-spacing: 0.3px;
+}
+.b-haupt { background: var(--brand-anthrazit); }
+.b-alt1  { background: var(--brand-gruen); }
+.b-alt2  { background: var(--brand-tuerkis); }
+.b-kein  { background: var(--brand-terrakotta); }
+
+.preis-badge {
+  display: inline-block; font-size: 17px; font-weight: 700;
+  color: var(--brand-tuerkis); background: var(--brand-tuerkis-light);
+  border: 1px solid #B8E5E8;
+  padding: 3px 10px; border-radius: 6px;
+  font-family: 'Nunito', sans-serif;
+}
+.gerichtname {
+  font-size: 19px; font-weight: 700; color: var(--brand-anthrazit);
+  font-family: 'Nunito', sans-serif;
+  word-break: break-word;
+}
+.bewohner-name { word-break: break-word; }
+.logo-zeile { flex-wrap: wrap; }
+
+.fehler {
+  background: #FDE8E6; border: 2px solid #C0392B; border-radius: 10px;
+  padding: 13px 15px; margin: 10px 0; font-size: 18px; color: #922B21;
+  font-weight: 700; display: none;
+}
+.nav { display: flex; gap: 10px; margin-top: 18px; }
+.btn {
+  padding: 17px 18px; font-size: 20px; font-weight: 700; border: none;
+  border-radius: 11px; cursor: pointer; font-family: 'Nunito', sans-serif;
+}
+.btn-zurueck { background: var(--brand-stein); color: var(--brand-anthrazit); flex: 1; }
+.btn-zurueck:hover { background: #C9C2B0; }
+.btn-weiter { background: var(--brand-tuerkis); color: white; flex: 2; }
+.btn-weiter:hover { background: var(--brand-tuerkis-hover); }
+.btn-zus { background: var(--brand-stein-light); color: var(--brand-anthrazit); flex: 1.4; border: 2px solid var(--brand-stein); }
+.btn-zus:hover { background: var(--brand-stein); }
+.btn-voll {
+  display: block; width: 100%; padding: 18px; font-size: 21px; font-weight: 700;
+  border: none; border-radius: 11px; cursor: pointer; margin-top: 14px;
+  font-family: 'Nunito', sans-serif;
+}
+.btn-blau { background: var(--brand-gradient); color: white; }
+.btn-blau:hover { filter: brightness(1.05); }
+.btn-grau { background: var(--brand-stein); color: var(--brand-anthrazit); margin-top: 10px; }
+.btn-grau:hover { background: #C9C2B0; }
+/* Bestellung-versenden-Button: drei Zustaende */
+.btn-send { font-size: 22px; color: white; }
+/* A) Default — noch nie versendet */
+.btn-send.zustand-neu       { background: var(--brand-tuerkis); }
+.btn-send.zustand-neu:hover { background: var(--brand-tuerkis-hover); }
+/* B) Bereits versendet, keine Aenderung — Erfolg, deaktiviert */
+.btn-send.zustand-ok        { background: var(--brand-gruen); cursor: default; opacity: 0.95; }
+.btn-send.zustand-ok:hover  { background: var(--brand-gruen); }
+/* C) Bereits versendet, Aenderung gemacht — Aufmerksamkeit */
+.btn-send.zustand-aend      { background: var(--brand-terrakotta); }
+.btn-send.zustand-aend:hover{ background: #B17A5C; }
+
+.zus-zeile {
+  border: 2px solid var(--brand-stein); border-radius: 11px;
+  padding: 12px 14px; margin-bottom: 8px; background: white;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  text-align: left; width: 100%; font-family: inherit;
+  display: block;
+}
+.zus-zeile:hover, .zus-zeile:focus {
+  background: var(--brand-tuerkis-light);
+  border-color: var(--brand-tuerkis);
+  outline: none;
+}
+.zus-zeile:after {
+  content: '\203A'; float: right; color: var(--brand-tuerkis);
+  font-size: 22px; font-weight: 700; margin-top: -2px;
+}
+.zus-tag {
+  font-size: 17px; font-weight: 700; color: var(--brand-tuerkis);
+  font-family: 'Nunito', sans-serif;
+}
+.zus-menu { font-size: 17px; margin-top: 3px; color: var(--brand-anthrazit); }
+.zus-beil { font-size: 15px; color: #555; margin-top: 3px; }
+.zus-abk  { color: #8C5631; }
+
+.preis-box {
+  background: var(--brand-anthrazit); color: white; border-radius: 11px;
+  padding: 18px; margin-top: 14px; text-align: center;
+}
+.preis-box .summe {
+  font-family: 'Comfortaa', 'Nunito', sans-serif; font-weight: 700;
+  font-size: 32px; margin-top: 4px;
+}
+.preis-box .detail { font-size: 16px; opacity: .9; }
+
+.ok-icon  { font-size: 80px; text-align: center; margin: 8px 0 12px; }
+.ok-titel {
+  font-family: 'Comfortaa', 'Nunito', sans-serif; font-weight: 700;
+  font-size: 26px; color: var(--brand-gruen); text-align: center; margin-bottom: 8px;
+}
+.ok-sub { font-size: 18px; text-align: center; color: var(--brand-anthrazit); margin-bottom: 16px; }
+
+.seite { display: none; }
+.seite.aktiv { display: block; }
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE / SMARTPHONE OPTIMIERUNG
+   Standard-Use-Case: QR-Code-Scan -> Smartphone-Browser
+   ════════════════════════════════════════════════════════════ */
+
+/* Standard-Smartphones (≤ 480 px Breite) */
+@media (max-width: 480px) {
+  body { font-size: 18px; }
+  .kopf { padding: 14px 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); }
+  .logo-symbol { width: 56px; height: 56px; font-size: 40px; padding-bottom: 3px; }
+  .logo-wort { font-size: 28px; }
+  .claim { font-size: 10px; letter-spacing: 1.5px; margin-bottom: 10px; }
+  .kopf h1 { font-size: 22px; }
+  .wrap { padding: 10px 10px 40px; }
+  .karte { padding: 18px 16px; border-radius: 12px; }
+  h2 { font-size: 21px; }
+  input[type=tel]#pin { font-size: 24px; letter-spacing: 5px; }
+  .badge { font-size: 13px; padding: 2px 8px; }
+  .preis-badge { font-size: 16px; padding: 2px 8px; }
+  .gerichtname { font-size: 18px; }
+  .essen-btn { padding: 14px 13px; }
+  .btn { font-size: 18px; padding: 15px 14px; }
+  .btn-voll { font-size: 19px; padding: 16px; }
+  .preis-box .summe { font-size: 28px; }
+  .bewohner-name { font-size: 22px; }
+  .bewohner-box { padding: 16px; }
+  .woche-titel { font-size: 19px; }
+  .woche-datum { font-size: 16px; }
+}
+
+/* Sehr schmale Phones (≤ 360 px, z. B. iPhone SE 1. Gen, Galaxy A-Series) */
+@media (max-width: 360px) {
+  .logo-symbol { width: 48px; height: 48px; font-size: 34px; }
+  .logo-wort { font-size: 24px; }
+  .kopf h1 { font-size: 20px; }
+  .nav { gap: 8px; }
+  .btn { padding: 14px 10px; font-size: 17px; }
+  .beilage-label { min-width: 90px; font-size: 15px; }
+  .beilage-name { font-size: 15px; }
+  .toggle-btn { font-size: 14px; padding: 8px 10px; }
+  input[type=tel]#pin { font-size: 22px; letter-spacing: 4px; }
+}
+</style>
+</head>
+<body>
+
+<div class="kopf">
+  <div class="logo-zeile">
+    <div class="logo-symbol">&#8962;</div>
+    <div class="logo-wort"><span class="olga">Olga</span><span class="schwestern">haus</span></div>
+  </div>
+  <p class="claim">ZUERST DER MENSCH &mdash; SEIT 1872</p>
+  <h1>Essensbestellung</h1>
+</div>
+
+<div class="wrap">
+
+<div class="seite aktiv" id="s_pin">
+  <div class="karte">
+    <h2>Anmeldung</h2>
+    <div id="bewohner-info"></div>
+    <label for="apt">Apartment-Nr.:</label>
+    <input type="text" id="apt" inputmode="text" autocomplete="off" style="letter-spacing:0;font-size:22px;text-align:left">
+    <label for="pin" style="margin-top:10px;display:block">5-stelliger Code:</label>
+    <input type="tel" id="pin" maxlength="5" inputmode="numeric" placeholder="-----">
+    <div class="fehler" id="err_pin">Bitte Apartment-Nr. und 5-stelligen Code eingeben.</div>
+    <button class="btn-voll btn-weiter" onclick="pinBestaetigen()">Bestätigen &#x279C;</button>
+  </div>
+</div>
+
+<div class="seite" id="s_wochen">
+  <div class="karte">
+    <h2 id="wochen-titel">Woche auswählen</h2>
+    <p style="font-size:17px;color:#555;margin-bottom:14px">
+      Tippen Sie auf die Woche, für die Sie bestellen möchten.
+    </p>
+    <div id="wochen-liste"></div>
+    <button class="btn-voll btn-grau" onclick="zurueckZuPin()">Abmelden</button>
+  </div>
+</div>
+
+<div class="seite" id="s_tag">
+  <div class="karte">
+    <div class="tag-info" id="tag-meta"></div>
+    <h2 id="tag-titel"></h2>
+    <div class="gesperrt-info" id="tag-gesperrt"></div>
+
+    <div class="beilage-block">
+      <div class="beilage-zeile">
+        <span class="beilage-label">Vorspeise:</span>
+        <span class="beilage-name" id="vor-name"></span>
+        <button class="toggle-btn" id="vor-btn" onclick="toggleBeil('vor')">&#x2713; Ja</button>
+      </div>
+      <div class="beilage-zeile">
+        <span class="beilage-label">Nachspeise:</span>
+        <span class="beilage-name" id="nach-name"></span>
+        <button class="toggle-btn" id="nach-btn" onclick="toggleBeil('nach')">&#x2713; Ja</button>
+      </div>
+    </div>
+
+    <p class="waehle">Bitte wählen Sie Ihr Mittagessen:</p>
+
+    <button class="essen-btn" id="opt-h" onclick="wahl('h')">
+      <div class="kopfzeile">
+        <span class="badge b-haupt">Hauptmenü</span>
+        <span class="preis-badge">7,50 €</span>
+      </div>
+      <span class="gerichtname" id="opt-h-name"></span>
+    </button>
+
+    <button class="essen-btn" id="opt-a1" onclick="wahl('a1')">
+      <div class="kopfzeile">
+        <span class="badge b-alt1">Alternative 1</span>
+        <span class="preis-badge">7,50 €</span>
+      </div>
+      <span class="gerichtname" id="opt-a1-name"></span>
+    </button>
+
+    <button class="essen-btn" id="opt-a2" onclick="wahl('a2')">
+      <div class="kopfzeile">
+        <span class="badge b-alt2">Alternative 2 &ndash; vegetarisch</span>
+        <span class="preis-badge">7,50 €</span>
+      </div>
+      <span class="gerichtname" id="opt-a2-name"></span>
+    </button>
+
+    <button class="essen-btn" id="opt-k" onclick="wahl('k')">
+      <div class="kopfzeile">
+        <span class="badge b-kein">Kein Essen</span>
+        <span class="preis-badge" style="background:#f0f0f0;color:#777;border-color:#ddd">0,00 €</span>
+      </div>
+      <span class="gerichtname" style="color:#888;font-size:17px;font-weight:500">An diesem Tag kein Mittagessen</span>
+    </button>
+
+    <div class="fehler" id="err_tag">Bitte eine Option auswählen!</div>
+    <div class="nav">
+      <button class="btn btn-zurueck" id="btn-zurueck-tag" onclick="tagZurueck()">&#x2190; Zurück</button>
+      <button class="btn btn-zus"     id="btn-zus-tag"     onclick="zeigeWochenZus()">Übersicht</button>
+      <button class="btn btn-weiter"  id="btn-weiter-tag"  onclick="tagWeiter()">Weiter &#x279C;</button>
+    </div>
+  </div>
+</div>
+
+<div class="seite" id="s_zus">
+  <div class="karte">
+    <h2 id="zus-titel">Wochen-Übersicht</h2>
+    <div id="zus-inhalt"></div>
+    <div class="preis-box">
+      <div class="detail" id="preis-detail"></div>
+      <div class="summe" id="preis-summe">0,00 €</div>
+    </div>
+    <button class="btn-voll btn-send zustand-neu" id="btn-send" onclick="bestellungVersenden()">
+      Bestellung versenden
+    </button>
+    <button class="btn-voll btn-grau" onclick="zeigeWochenUebersicht()">&#x2190; Zurück zur Wochenübersicht</button>
+  </div>
+</div>
+
+<div class="seite" id="s_done">
+  <div class="karte">
+    <div class="ok-icon">&#x2705;</div>
+    <div class="ok-titel">Bestellung gespeichert!</div>
+    <p class="ok-sub">
+      Ihre Wochenbestellung wurde an die Küche übermittelt.<br>
+      Sie können bis 16:00 Uhr am Vortag noch Änderungen vornehmen.
+    </p>
+    <button class="btn-voll btn-blau" onclick="zeigeWochenUebersicht()">Andere Woche bearbeiten</button>
+    <button class="btn-voll btn-grau" onclick="zurueckZuPin()">Abmelden</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+var PREIS_PRO_MENUE = 7.50;
+var DEADLINE_STUNDE = 16;
+
+// Google Apps Script Web App URL – nach Deployment hier eintragen:
+var SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz7xbmoinDd_qORv2QMHBcYwzIB4JgZ3mf4C-fSyj1P8f1GbqLUKhu6ljx2i_Lp1pTUWQ/exec";
+
+// Bewohner-Datenquelle: Online-CSV (Google Sheets veröffentlicht) ODER lokal
+// Nach Schritt 5 der Anleitung URL aus Google Sheets eintragen:
+var BEWOHNER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHFZzhkI6vrlTblGWSBQ3W3uU7rjt8DhnzC8g-N6QY-Ht2AXZbBPb-5oNZd5nM73wP2DzJyMb11gY-/pub?gid=0&single=true&output=csv";
+
+var BEWOHNER = [];           // wird aus CSV geladen
+var BEWOHNER_GELADEN = false;
+
+var MAHLZEITEN_STANDARD = [
+  { name: "Montag",
+    vor: "Kartoffelsuppe", nach: "Frisches Obst",
+    h:  "Curry aus Blumenkohl und roten Linsen mit Reis",
+    a1: "Hähnchenbrustfilet mit Rahmsauce und Teigwaren",
+    a2: "Gemüsebällchen mit Pilzrahmsauce und Reis (vegetarisch)" },
+  { name: "Dienstag",
+    vor: "Kraftbrühe mit Grießklößchen", nach: "Naturjoghurt",
+    h:  "Szegediner Schweinegulasch mit Mini-Kartoffelklößen",
+    a1: "Makkaroni mit Bolognesesauce und Käse",
+    a2: "Apfelstrudel mit Vanille-Dessertsauce (vegetarisch)" },
+  { name: "Mittwoch",
+    vor: "Broccoli-Cremesuppe", nach: "Kompott",
+    h:  "Tafelspitz in Meerrettichsoße mit Kartoffeln",
+    a1: "Schweinelachssteak mit Pilzrahmsauce und Kartoffelpüree",
+    a2: "Vegetarische Maultaschen in Tomatensoße (vegetarisch)" },
+  { name: "Donnerstag",
+    vor: "Kraftbrühe mit Flädle", nach: "Fruchtjoghurt",
+    h:  "Kräuterquark mit Kartoffel-Wedges",
+    a1: "Frikassee vom Huhn mit Spargel und Möhren, dazu Reis",
+    a2: "Bergkäsenocken an Gemüserahmsoße (vegetarisch)" },
+  { name: "Freitag",
+    vor: "Blumenkohl-Cremesuppe", nach: "Frisches Obst",
+    h:  "Paniertes Seelachsfilet mit Remouladensauce",
+    a1: "Seelachsfilet Meunière mit Kräutersauce",
+    a2: "Tagliatelle mit Gemüsebolognese und Käse (vegetarisch)" },
+  { name: "Samstag",
+    vor: "Tomaten-Cremesuppe", nach: "Schokoladenpudding",
+    h:  "Marillen-Topfen-Knödel mit Vanillesoße",
+    a1: "Nudeleintopf mit Huhn und Weizenbrötchen",
+    a2: "Champignon-Omelette mit Kräutersauce und Kartoffeln (vegetarisch)" },
+  { name: "Sonntag",
+    vor: "Kraftbrühe mit Backerbsen", nach: "Frisches Obst",
+    h:  "Leberknödel mit Zwiebelsauce und Kartoffelpüree",
+    a1: "Gulasch vom Schwein mit Erbsen und Teigwaren",
+    a2: "Nudelpfanne mit Blattspinat und Käsesauce (vegetarisch)" }
+];
+
+function getMahlzeitenFuerWoche(kw) { return MAHLZEITEN_STANDARD; }
+
+var state = {
+  pin: "", name: "", apartment: "",
+  bestellungen: {}, beilagen: {}, bestaetigt: [],
+  gesendet: {},  // Snapshot je KW: JSON.stringify({best, beil}) zum Zeitpunkt des Versands
+  aktKW: null, aktJahr: null, aktTag: null
+};
+
+function initApp() {
+  var p = new URLSearchParams(window.location.search);
+  var aptVor = (p.get("a") || "").trim();
+  var info = document.getElementById("bewohner-info");
+  info.innerHTML = '<p style="font-size:17px;color:#555;margin-bottom:14px">Bitte geben Sie Ihre Apartment-Nr. und Ihren 5-stelligen Code ein.</p>';
+  if (aptVor) document.getElementById("apt").value = aptVor;
+  ladeBewohner();
+}
+
+function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function parseBewohnerCSV(text) {
+  BEWOHNER = [];
+  var zeilen = text.split(/\r?\n/);
+  for (var i = 1; i < zeilen.length; i++) {
+    var z = zeilen[i].trim();
+    if (!z) continue;
+    var teile = z.split(",");
+    var apt  = (teile[0] || "").trim();
+    var pin  = (teile[1] || "").trim();
+    var name = teile.slice(2).join(",").trim();
+    if (apt && pin && name) BEWOHNER.push({apartment: apt, pin: pin, name: name});
+  }
+  BEWOHNER_GELADEN = true;
+}
+
+function ladeBewohner() {
+  // Priorität 1: Online-CSV aus Google Sheets (unabhängig vom lokalen PC)
+  var onlineUrl = (typeof BEWOHNER_CSV_URL !== "undefined" && BEWOHNER_CSV_URL && BEWOHNER_CSV_URL !== "XXXX")
+    ? BEWOHNER_CSV_URL : null;
+
+  if (onlineUrl) {
+    fetch(onlineUrl, {cache: "no-store"})
+      .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+      .then(function(text){ parseBewohnerCSV(text); })
+      .catch(function(e){
+        console.warn("Online-Bewohnerliste nicht erreichbar, lade lokal:", e.message);
+        ladeBewohnerLokal();
+      });
+  } else {
+    // Priorität 2: Lokale CSV (Fallback / Entwicklungsmodus)
+    ladeBewohnerLokal();
+  }
+}
+
+function ladeBewohnerLokal() {
+  fetch("bewohner.csv", {cache: "no-store"})
+    .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+    .then(function(text){ parseBewohnerCSV(text); })
+    .catch(function(e){
+      var err = document.getElementById("err_pin");
+      err.textContent = "Bewohnerliste konnte nicht geladen werden (" + e.message + "). Bitte Seite neu laden.";
+      err.style.display = "block";
+    });
+}
+
+function findeBewohner(apt, pin) {
+  var a = apt.toLowerCase().trim();
+  for (var i = 0; i < BEWOHNER.length; i++) {
+    var b = BEWOHNER[i];
+    if (b.apartment.toLowerCase() === a && b.pin === pin) return b;
+  }
+  return null;
+}
+
+function montagVon(d){var x=new Date(d);x.setHours(0,0,0,0);var dow=x.getDay()||7;x.setDate(x.getDate()-dow+1);return x;}
+function plusTage(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function isoKW(d){var x=new Date(d.getTime());x.setHours(0,0,0,0);x.setDate(x.getDate()+3-(x.getDay()+6)%7);var w1=new Date(x.getFullYear(),0,4);return 1+Math.round(((x.getTime()-w1.getTime())/86400000-3+(w1.getDay()+6)%7)/7);}
+function fmtDatum(d){return ("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2)+"."+d.getFullYear();}
+function fmtKurz(d){return ("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2)+".";}
+function deadlineFuer(t){var dl=new Date(t);dl.setDate(dl.getDate()-1);dl.setHours(DEADLINE_STUNDE,0,0,0);return dl;}
+function istGesperrt(t){return new Date()>deadlineFuer(t);}
+function getWochen(){var heute=new Date(),mo=montagVon(heute),li=[];for(var i=0;i<4;i++){var m=plusTage(mo,i*7);li.push({kw:isoKW(m),jahr:m.getFullYear(),montag:m,sonntag:plusTage(m,6)});}return li;}
+function tagDatum(kw,jahr,tagNr){var w=getWochen();for(var i=0;i<w.length;i++) if(w[i].kw===kw&&w[i].jahr===jahr) return plusTage(w[i].montag,tagNr-1);return null;}
+
+function speicherKey(){return "dmo_"+state.apartment+"_"+state.pin;}
+function speichern(){if(!state.pin||!state.apartment)return;try{localStorage.setItem(speicherKey(),JSON.stringify({bestellungen:state.bestellungen,beilagen:state.beilagen,bestaetigt:state.bestaetigt,gesendet:state.gesendet}));}catch(e){}}
+
+// Lädt Bestellungen direkt aus dem Google Sheet via GAS doGet
+function ladeAusSheet(callback) {
+  if (!SHEETS_WEBHOOK_URL || SHEETS_WEBHOOK_URL === "XXXX") { callback(false); return; }
+  var url = SHEETS_WEBHOOK_URL + "?apartment=" + encodeURIComponent(state.apartment);
+  fetch(url, {cache: "no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j || !j.ok) { callback(false); return; }
+      // Sheet-Daten in state-Format umwandeln
+      state.bestellungen = {}; state.beilagen = {}; state.bestaetigt = []; state.gesendet = {};
+      var wahlMap = {"Hauptmenü":"h","Alternative 1":"a1","Alternative 2":"a2","Kein Essen":"k"};
+      var tagMap  = {"Montag":1,"Dienstag":2,"Mittwoch":3,"Donnerstag":4,"Freitag":5,"Samstag":6,"Sonntag":7};
+      (j.data || []).forEach(function(row){
+        var kw = Number(row.kw), t = tagMap[row.wochentag];
+        if (!kw || !t) return;
+        if (!state.bestellungen[kw]) state.bestellungen[kw] = {};
+        if (!state.beilagen[kw])     state.beilagen[kw]     = {};
+        state.bestellungen[kw][t] = wahlMap[row.menueTyp] || "";
+        state.beilagen[kw][t]     = { vor: row.vorspeise === "Ja", nach: row.nachspeise === "Ja" };
+        if (state.bestaetigt.indexOf(kw) < 0) state.bestaetigt.push(kw);
+      });
+      // Snapshot speichern (für Änderungs-Erkennung)
+      Object.keys(state.bestellungen).forEach(function(kw){
+        state.gesendet[kw] = snapshotKW(Number(kw));
+      });
+      speichern();  // lokal cachen für schnelleren Wieder-Aufruf
+      callback(true);
+    })
+    .catch(function(){ callback(false); });
+}
+
+function laden(){
+  if(!state.pin||!state.apartment)return;
+  // Erst leeren – kein Übernehmen alter Browser-Daten
+  state.bestellungen={}; state.beilagen={}; state.bestaetigt=[]; state.gesendet={};
+  // Dann aus Sheet holen (asynchron, lädt Wochenübersicht neu wenn fertig)
+  ladeAusSheet(function(ok){
+    if (ok) {
+      try { if (typeof zeigeWochenUebersicht === "function" && document.getElementById("s_wochen") && document.getElementById("s_wochen").classList.contains("aktiv")) zeigeWochenUebersicht(); } catch(e){}
+    } else {
+      // Fallback: lokaler Cache
+      try{var raw=localStorage.getItem(speicherKey());if(raw){var d=JSON.parse(raw);state.bestellungen=d.bestellungen||{};state.beilagen=d.beilagen||{};state.bestaetigt=d.bestaetigt||[];state.gesendet=d.gesendet||{};}}catch(e){}
+    }
+  });
+}
+function snapshotKW(kw){return JSON.stringify({b:state.bestellungen[kw]||{},bl:state.beilagen[kw]||{}});}
+
+function zeige(id){var s=document.querySelectorAll(".seite");for(var i=0;i<s.length;i++) s[i].classList.remove("aktiv");document.getElementById(id).classList.add("aktiv");window.scrollTo(0,0);}
+
+function pinBestaetigen() {
+  var apt = document.getElementById("apt").value.trim();
+  var pin = document.getElementById("pin").value.trim();
+  var err = document.getElementById("err_pin");
+  if (!apt) { err.textContent = "Bitte Apartment-Nr. eingeben."; err.style.display = "block"; return; }
+  if (!/^\d{5}$/.test(pin)) { err.textContent = "Bitte genau 5 Ziffern als Code eingeben."; err.style.display = "block"; return; }
+  if (!BEWOHNER_GELADEN) { err.textContent = "Bewohnerdaten werden noch geladen — bitte einen Moment warten."; err.style.display = "block"; return; }
+  var b = findeBewohner(apt, pin);
+  if (!b) { err.textContent = "Apartment-Nr. und Code passen nicht zusammen."; err.style.display = "block"; return; }
+  err.style.display = "none";
+  state.pin = pin; state.name = b.name; state.apartment = b.apartment;
+  laden(); zeigeWochenUebersicht();
+}
+function zurueckZuPin(){
+  state = {pin:"",name:"",apartment:"",bestellungen:{},beilagen:{},bestaetigt:[],gesendet:{},aktKW:null,aktJahr:null,aktTag:null};
+  document.getElementById("pin").value = "";
+  document.getElementById("apt").value = "";
+  zeige("s_pin");
+}
+
+function anzahlMenues(kw){var b=state.bestellungen[kw]||{},n=0;for(var t=1;t<=7;t++) if(b[t]==="h"||b[t]==="a1"||b[t]==="a2") n++;return n;}
+
+function zeigeWochenUebersicht() {
+  var wochen = getWochen(), html = "";
+  document.getElementById("wochen-titel").textContent = "Hallo " + state.name;
+  for (var i = 0; i < wochen.length; i++) {
+    var w = wochen[i], best = state.bestaetigt.indexOf(w.kw) >= 0;
+    var n = anzahlMenues(w.kw), summe = (n*PREIS_PRO_MENUE).toFixed(2).replace(".", ",");
+    var status;
+    if (best)        status = '<span class="ok">&#x2705; Bestellung erfolgreich</span> &nbsp; ' + n + ' Menüs &middot; ' + summe + ' €';
+    else if (n > 0)  status = '<span class="pending">&#x270F;&#xFE0F; In Bearbeitung</span> &nbsp; ' + n + ' Menüs &middot; ' + summe + ' €';
+    else             status = '<span class="pending">&#x231B; Noch keine Bestellung</span>';
+    html += '<button class="woche-karte' + (best ? ' bestaetigt' : '') + '" onclick="oeffneWoche(' + w.kw + ',' + w.jahr + ')">';
+    html += '<div class="woche-titel">Kalenderwoche ' + w.kw + '</div>';
+    html += '<div class="woche-datum">' + fmtDatum(w.montag) + ' &ndash; ' + fmtDatum(w.sonntag) + '</div>';
+    html += '<div class="woche-status">' + status + '</div></button>';
+  }
+  document.getElementById("wochen-liste").innerHTML = html;
+  zeige("s_wochen");
+}
+
+function oeffneWoche(kw, jahr) {
+  state.aktKW = kw; state.aktJahr = jahr;
+  if (!state.bestellungen[kw]) state.bestellungen[kw] = {};
+  if (!state.beilagen[kw])     state.beilagen[kw]     = {};
+  zeigeTag(1);
+}
+
+function zeigeTag(tagNr) {
+  state.aktTag = tagNr;
+  var mahl = getMahlzeitenFuerWoche(state.aktKW);
+  var data = mahl[tagNr - 1];
+  var datum = tagDatum(state.aktKW, state.aktJahr, tagNr);
+  var gesperrt = istGesperrt(datum);
+  if (!state.beilagen[state.aktKW][tagNr]) state.beilagen[state.aktKW][tagNr] = {vor:true, nach:true};
+  document.getElementById("tag-meta").innerHTML = "KW " + state.aktKW + " &middot; Tag " + tagNr + " von 7";
+  document.getElementById("tag-titel").textContent = data.name + ", " + fmtDatum(datum);
+  var sperrEl = document.getElementById("tag-gesperrt");
+  if (gesperrt) {
+    sperrEl.className = "gesperrt-info frist-vorbei";
+    sperrEl.innerHTML = "&#x1F512; Änderungen nicht mehr möglich (Bestellfrist abgelaufen).";
+  } else {
+    sperrEl.className = "gesperrt-info frist-ok";
+    sperrEl.innerHTML = "&#x1F4C5; Bestellfrist: " + fmtKurz(deadlineFuer(datum)) + " 16:00 Uhr";
+  }
+  document.getElementById("vor-name").textContent  = data.vor;
+  document.getElementById("nach-name").textContent = data.nach;
+  setBeilButton("vor"); setBeilButton("nach");
+  document.getElementById("vor-btn").disabled  = gesperrt;
+  document.getElementById("nach-btn").disabled = gesperrt;
+  document.getElementById("opt-h-name").textContent  = data.h;
+  document.getElementById("opt-a1-name").textContent = data.a1;
+  document.getElementById("opt-a2-name").textContent = data.a2;
+  var opts = ["h","a1","a2","k"], aktuell = state.bestellungen[state.aktKW][tagNr];
+  for (var i = 0; i < opts.length; i++) {
+    var btn = document.getElementById("opt-" + opts[i]);
+    btn.classList.remove("aktiv","kein");
+    btn.disabled = gesperrt;
+    if (aktuell === opts[i]) btn.classList.add(opts[i] === "k" ? "kein" : "aktiv");
+  }
+  document.getElementById("btn-weiter-tag").innerHTML = (tagNr < 7) ? "Weiter &#x279C;" : "Wochen-Übersicht &#x279C;";
+  document.getElementById("btn-zurueck-tag").innerHTML = (tagNr > 1) ? "&#x2190; Zurück" : "&#x2190; Wochenwahl";
+  document.getElementById("err_tag").style.display = "none";
+  zeige("s_tag");
+}
+
+function setBeilButton(typ) {
+  var b = state.beilagen[state.aktKW][state.aktTag];
+  var btn = document.getElementById(typ + "-btn"), name = document.getElementById(typ + "-name");
+  if (b[typ]) { btn.classList.remove("abbestellt"); btn.innerHTML = "&#x2713; Ja"; name.classList.remove("gestrichen"); }
+  else        { btn.classList.add("abbestellt");    btn.innerHTML = "&#x2717; Nein"; name.classList.add("gestrichen"); }
+}
+function toggleBeil(typ) {
+  if (istGesperrt(tagDatum(state.aktKW, state.aktJahr, state.aktTag))) return;
+  var b = state.beilagen[state.aktKW][state.aktTag];
+  b[typ] = !b[typ]; setBeilButton(typ); speichern();
+}
+function wahl(opt) {
+  if (istGesperrt(tagDatum(state.aktKW, state.aktJahr, state.aktTag))) return;
+  state.bestellungen[state.aktKW][state.aktTag] = opt;
+  var opts = ["h","a1","a2","k"];
+  for (var i = 0; i < opts.length; i++) document.getElementById("opt-" + opts[i]).classList.remove("aktiv","kein");
+  document.getElementById("opt-" + opt).classList.add(opt === "k" ? "kein" : "aktiv");
+  document.getElementById("err_tag").style.display = "none";
+  speichern();
+}
+function tagWeiter() {
+  var datum = tagDatum(state.aktKW, state.aktJahr, state.aktTag);
+  if (!istGesperrt(datum) && !state.bestellungen[state.aktKW][state.aktTag]) {
+    document.getElementById("err_tag").style.display = "block"; return;
+  }
+  if (state.aktTag < 7) zeigeTag(state.aktTag + 1); else zeigeWochenZus();
+}
+function tagZurueck() { if (state.aktTag > 1) zeigeTag(state.aktTag - 1); else zeigeWochenUebersicht(); }
+
+function zeigeWochenZus() {
+  var kw = state.aktKW, b = state.bestellungen[kw] || {}, bl = state.beilagen[kw] || {};
+  var mahl = getMahlzeitenFuerWoche(kw);
+  document.getElementById("zus-titel").textContent = "Bestellung KW " + kw;
+  var html = "";
+  for (var t = 1; t <= 7; t++) {
+    var data = mahl[t - 1], datum = tagDatum(kw, state.aktJahr, t), o = b[t];
+    var menuText = "— nicht ausgewählt —", preis = "";
+    if      (o === "h")  { menuText = "Hauptmenü: " + data.h;     preis = " (7,50 €)"; }
+    else if (o === "a1") { menuText = "Alternative 1: " + data.a1; preis = " (7,50 €)"; }
+    else if (o === "a2") { menuText = "Alternative 2: " + data.a2; preis = " (7,50 €)"; }
+    else if (o === "k")  { menuText = "Kein Essen bestellt"; }
+    var lock = istGesperrt(datum) ? ' &#x1F512;' : '';
+    html += '<button type="button" class="zus-zeile" onclick="zeigeTag(' + t + ')">';
+    html += '<div class="zus-tag">' + data.name + ', ' + fmtKurz(datum) + lock + '</div>';
+    html += '<div class="zus-menu">' + menuText + preis + '</div>';
+    if (o === 'h' || o === 'a1' || o === 'a2') {
+      var bd = bl[t] || {vor:true, nach:true};
+      var teile = [];
+      if (bd.vor)  teile.push('Vor: '  + data.vor);
+      if (bd.nach) teile.push('Nach: ' + data.nach);
+      if (teile.length) {
+        html += '<div class="zus-beil">' + teile.join(' &nbsp;|&nbsp; ') + '</div>';
+      }
+    }
+    html += '</button>';
+  }
+  document.getElementById("zus-inhalt").innerHTML = html;
+  var n = anzahlMenues(kw), summe = (n * PREIS_PRO_MENUE).toFixed(2).replace(".", ",");
+  document.getElementById("preis-detail").textContent = n + " Menü(s) × 7,50 €";
+  document.getElementById("preis-summe").innerHTML = summe + " €";
+  aktualisiereSendButton();
+  zeige("s_zus");
+}
+
+function aktualisiereSendButton() {
+  var kw = state.aktKW, btn = document.getElementById("btn-send");
+  btn.classList.remove("zustand-neu","zustand-ok","zustand-aend");
+  btn.disabled = false;
+  var bereitsGesendet = state.bestaetigt.indexOf(kw) >= 0;
+  if (!bereitsGesendet) {
+    btn.classList.add("zustand-neu");
+    btn.textContent = "Bestellung versenden";
+    return;
+  }
+  // bereits gesendet — Aenderungen seit Versand?
+  var jetzt = snapshotKW(kw);
+  var damals = state.gesendet[kw] || "";
+  if (jetzt === damals) {
+    btn.classList.add("zustand-ok");
+    btn.textContent = "✓ Bestellung erfolgreich versendet";
+    btn.disabled = true;
+  } else {
+    btn.classList.add("zustand-aend");
+    btn.textContent = "Bestelländerung versenden";
+  }
+}
+
+
+function bauSheetsPayload(aenderung) {
+  var kw = state.aktKW, b = state.bestellungen[kw] || {}, bl = state.beilagen[kw] || {};
+  var mahl = getMahlzeitenFuerWoche(kw);
+  var tage = [];
+  for (var t = 1; t <= 7; t++) {
+    var data = mahl[t-1], datum = tagDatum(kw, state.aktJahr, t), o = b[t];
+    if (!o) continue; // nicht ausgewählt → kein Eintrag
+    var bd = bl[t] || {vor:true, nach:true};
+    var menueTyp = "", menueName = "", vor = "—", nach = "—", preis = 0;
+    if      (o === "h")  { menueTyp = "Hauptmenü";     menueName = data.h;  preis = 7.50; }
+    else if (o === "a1") { menueTyp = "Alternative 1";  menueName = data.a1; preis = 7.50; }
+    else if (o === "a2") { menueTyp = "Alternative 2";  menueName = data.a2; preis = 7.50; }
+    else if (o === "k")  { menueTyp = "Kein Essen";     menueName = "";      preis = 0; }
+    if (menueTyp !== "Kein Essen") {
+      vor  = bd.vor  ? "Ja" : "Nein";
+      nach = bd.nach ? "Ja" : "Nein";
+    }
+    tage.push({
+      datum: fmtDatum(datum), wochentag: data.name,
+      wahl: o, menueTyp: menueTyp, menueName: menueName,
+      vorspeise: vor, nachspeise: nach, preis: preis
+    });
+  }
+  return {
+    apartment: state.apartment, name: state.name,
+    kw: kw, jahr: state.aktJahr, aenderung: aenderung, tage: tage
+  };
+}
+
+function sendeAnSheets(aenderung, callback) {
+  if (!SHEETS_WEBHOOK_URL || SHEETS_WEBHOOK_URL === "XXXX") {
+    if (callback) callback(false, "Keine Sheet-URL konfiguriert");
+    return;
+  }
+  try {
+    var payload = bauSheetsPayload(aenderung);
+    fetch(SHEETS_WEBHOOK_URL, {
+      method: "POST",
+      headers: {"Content-Type": "text/plain;charset=utf-8"}, // text/plain → kein CORS-Preflight
+      body: JSON.stringify(payload)
+    })
+    .then(function(r){ return r.json().catch(function(){ return {ok: r.ok}; }); })
+    .then(function(j){ if (callback) callback(!!(j && j.ok), j && j.error); })
+    .catch(function(err){ if (callback) callback(false, err.message); });
+  } catch(e) {
+    if (callback) callback(false, e.message);
+  }
+}
+
+function bestellungVersenden() {
+  var btn = document.getElementById("btn-send");
+  var aenderung = state.bestaetigt.indexOf(state.aktKW) >= 0;
+  btn.disabled = true;
+  btn.textContent = "Wird gesendet …";
+
+  sendeAnSheets(aenderung, function(ok, err){
+    if (!ok) {
+      btn.disabled = false;
+      aktualisiereSendButton();
+      alert("Bestellung konnte nicht gespeichert werden:\n" + (err || "Unbekannter Fehler") +
+            "\n\nBitte Internetverbindung prüfen und erneut versuchen.");
+      return;
+    }
+    if (state.bestaetigt.indexOf(state.aktKW) < 0) state.bestaetigt.push(state.aktKW);
+    state.gesendet[state.aktKW] = snapshotKW(state.aktKW);
+    speichern();
+    zeige("s_done");
+  });
+}
+
+initApp();
+</script>
+</body>
+</html>
