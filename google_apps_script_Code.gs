@@ -439,17 +439,19 @@ function ladeBestellungen(ss) {
   var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 13).getValues();
   return rows.map(function(r){
     return {
-      datum:      String(r[0] || "").trim(),
-      wochentag:  String(r[1] || "").trim(),
-      kw:         Number(r[2]) || 0,
-      jahr:       Number(r[3]) || 0,
-      apartment:  String(r[4] || "").trim(),
-      name:       String(r[5] || "").trim(),
-      menueTyp:   String(r[6] || "").trim(),
-      menueName:  String(r[7] || "").trim(),
-      vorspeise:  String(r[8] || "").trim(),
-      nachspeise: String(r[9] || "").trim(),
-      preis:      Number(r[10]) || 0
+      datum:       String(r[0] || "").trim(),
+      wochentag:   String(r[1] || "").trim(),
+      kw:          Number(r[2]) || 0,
+      jahr:        Number(r[3]) || 0,
+      apartment:   String(r[4] || "").trim(),
+      name:        String(r[5] || "").trim(),
+      menueTyp:    String(r[6] || "").trim(),
+      menueName:   String(r[7] || "").trim(),
+      vorspeise:   String(r[8] || "").trim(),
+      nachspeise:  String(r[9] || "").trim(),
+      preis:       Number(r[10]) || 0,
+      zeitstempel: String(r[11] || "").trim(),
+      typ:         String(r[12] || "").trim()
     };
   });
 }
@@ -563,6 +565,162 @@ function validierePin(ss, apt, pin) {
 }
 
 // ──────────────────────────────────────────────
+// 10c. API-Token für n8n-Workflows
+// ──────────────────────────────────────────────
+// Einmalig im Editor ausführen → generiert + speichert API-Token, zeigt ihn an.
+// Den angezeigten Token in n8n als HTTP-Credential hinterlegen.
+function setzeApiToken() {
+  var token = Utilities.getUuid().replace(/-/g, "") +
+              Utilities.getUuid().replace(/-/g, "").substring(0, 16);
+  PropertiesService.getScriptProperties().setProperty("API_TOKEN", token);
+  SpreadsheetApp.getUi().alert(
+    "✅ Neuer API-Token erstellt und gespeichert.\n\n" +
+    "Bitte JETZT kopieren und in n8n als HTTP-Credential hinterlegen:\n\n" +
+    token + "\n\n" +
+    "Hinweis: Der Token wird nur ein einziges Mal angezeigt.\n" +
+    "Bei Verlust kann diese Funktion erneut ausgeführt werden, dabei wird der alte ungültig."
+  );
+}
+
+function pruefeApiToken(token) {
+  var stored = PropertiesService.getScriptProperties().getProperty("API_TOKEN");
+  if (!stored) return false;
+  return String(token || "").trim() === stored;
+}
+
+// ──────────────────────────────────────────────
+// 10d. Daten-Helfer für Sheet UND n8n-Endpunkte (eine Quelle der Wahrheit)
+// ──────────────────────────────────────────────
+function berechneWochenuebersicht(ss, kw, jahr) {
+  var bewohner     = ladeBewohner(ss);
+  var bestellungen = ladeBestellungen(ss);
+  var mo           = montagVonKW(kw, jahr);
+
+  // Tageszeile: Wochentag + Datum
+  var wochentage = TAGE_DE.map(function(tag, i) {
+    var d = new Date(mo); d.setDate(mo.getDate() + i);
+    return { wochentag: tag, datum: fmtKurzDatum(d) };
+  });
+
+  // Bestellungen indizieren
+  var idx = {};
+  bestellungen.forEach(function(o){
+    if (Number(o.kw) !== Number(kw) || Number(o.jahr) !== Number(jahr)) return;
+    idx[o.apartment + "|" + o.wochentag] = o;
+  });
+
+  var zeilen = bewohner.map(function(bw) {
+    var tage = wochentage.map(function(t) {
+      var o = idx[bw.apartment + "|" + t.wochentag];
+      var menue = MENUE_PRO_WOCHENTAG[t.wochentag] || {vor: "", nach: ""};
+      return {
+        wochentag:      t.wochentag,
+        datum:          t.datum,
+        bestellt:       !!o,
+        menueTyp:       o ? o.menueTyp  : "",
+        menueName:      o ? o.menueName : "",
+        vorspeise:      (o && o.vorspeise  === "Ja") ? "Ja" : "",
+        nachspeise:     (o && o.nachspeise === "Ja") ? "Ja" : "",
+        vorspeiseName:  (o && o.vorspeise  === "Ja") ? menue.vor  : "",
+        nachspeiseName: (o && o.nachspeise === "Ja") ? menue.nach : "",
+        preis:          o ? Number(o.preis) || 0 : 0
+      };
+    });
+    return { apartment: bw.apartment, name: bw.name, tage: tage };
+  });
+
+  return { kw: kw, jahr: jahr, wochentage: wochentage, bewohner: zeilen };
+}
+
+function berechneMonatsuebersicht(ss, monat, jahr) {
+  var bewohner     = ladeBewohner(ss);
+  var bestellungen = ladeBestellungen(ss);
+
+  var agg = {};
+  bewohner.forEach(function(bw){
+    agg[bw.apartment] = {haupt:0, alt1:0, alt2:0, kein:0, vor:0, nach:0, kosten:0};
+  });
+
+  bestellungen.forEach(function(o){
+    if (!agg[o.apartment]) return;
+    var d = parseDatum(o.datum);
+    if (!d) return;
+    if (d.getMonth() + 1 !== Number(monat)) return;
+    if (d.getFullYear()  !== Number(jahr))  return;
+
+    var a = agg[o.apartment];
+    if      (o.menueTyp === "Hauptmenü")     a.haupt++;
+    else if (o.menueTyp === "Alternative 1") a.alt1++;
+    else if (o.menueTyp === "Alternative 2") a.alt2++;
+    else if (o.menueTyp === "Kein Essen")    a.kein++;
+    if (o.vorspeise === "Ja")  a.vor++;
+    if (o.nachspeise === "Ja") a.nach++;
+    a.kosten += Number(o.preis) || 0;
+  });
+
+  var summen = {haupt:0, alt1:0, alt2:0, kein:0, vor:0, nach:0, gesamt:0, kosten:0};
+  var zeilen = bewohner.map(function(bw){
+    var a = agg[bw.apartment];
+    var gesamt = a.haupt + a.alt1 + a.alt2;
+    summen.haupt += a.haupt;  summen.alt1 += a.alt1;  summen.alt2 += a.alt2;
+    summen.kein  += a.kein;   summen.vor  += a.vor;   summen.nach += a.nach;
+    summen.gesamt += gesamt;  summen.kosten += a.kosten;
+    return {
+      apartment: bw.apartment, name: bw.name,
+      haupt: a.haupt, alt1: a.alt1, alt2: a.alt2, kein: a.kein,
+      vor: a.vor, nach: a.nach, gesamt: gesamt,
+      kosten: Math.round(a.kosten * 100) / 100
+    };
+  });
+  summen.kosten = Math.round(summen.kosten * 100) / 100;
+
+  return { monat: Number(monat), jahr: Number(jahr), bewohner: zeilen, summen: summen };
+}
+
+// "10.05.2026 16:00" → Date-Objekt
+function parseDatumZeit(s) {
+  if (!s) return null;
+  var m = String(s).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if (!m) return null;
+  return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]),
+                  Number(m[4] || 0), Number(m[5] || 0));
+}
+
+function berechneAenderungenAb(ss, datum, seitDatumZeit) {
+  var bestellungen = ladeBestellungen(ss);
+  var ziel = parseDatumZeit(datum);
+  var seit = parseDatumZeit(seitDatumZeit);
+  if (!ziel || !seit) return [];
+
+  // Datum-Filter (z.B. "11.05.2026") gegen Bestellungen!A
+  var zielStr = fmtKurzDatum(ziel);
+
+  return bestellungen.filter(function(o){
+    if (o.datum !== zielStr) return false;
+    var ts = parseDatumZeit(o.zeitstempel);
+    if (!ts) return false;
+    return ts.getTime() >= seit.getTime();
+  }).map(function(o){
+    var menue = MENUE_PRO_WOCHENTAG[o.wochentag] || {vor: "", nach: ""};
+    return {
+      apartment:      o.apartment,
+      name:           o.name,
+      datum:          o.datum,
+      wochentag:      o.wochentag,
+      menueTyp:       o.menueTyp,
+      menueName:      o.menueName,
+      vorspeise:      o.vorspeise,
+      nachspeise:     o.nachspeise,
+      vorspeiseName:  o.vorspeise  === "Ja" ? menue.vor  : "",
+      nachspeiseName: o.nachspeise === "Ja" ? menue.nach : "",
+      preis:          o.preis,
+      zeitstempel:    o.zeitstempel,
+      typ:            o.typ
+    };
+  });
+}
+
+// ──────────────────────────────────────────────
 // 11a. GET-Endpunkt – Bewohnerliste ODER Bestellungen für Apartment
 // ──────────────────────────────────────────────
 function doGet(e) {
@@ -586,6 +744,35 @@ function doGet(e) {
       });
       return json_ok(bwOut);
     }
+
+    // ── n8n-Endpunkte (Token-geschützt) ──────────────────────────────
+    var token = String((e.parameter && e.parameter.token) || "").trim();
+
+    if (action === "wochenuebersicht") {
+      if (!pruefeApiToken(token)) return json_err("Ungültiger oder fehlender Token");
+      var kw   = Number((e.parameter && e.parameter.kw)   || 0);
+      var jahr = Number((e.parameter && e.parameter.jahr) || 0);
+      if (!kw || !jahr) return json_err("kw und jahr erforderlich");
+      return json_ok(berechneWochenuebersicht(ss, kw, jahr));
+    }
+
+    if (action === "monatsuebersicht") {
+      if (!pruefeApiToken(token)) return json_err("Ungültiger oder fehlender Token");
+      var monat = Number((e.parameter && e.parameter.monat) || 0);
+      var jahrM = Number((e.parameter && e.parameter.jahr)  || 0);
+      if (!monat || !jahrM) return json_err("monat und jahr erforderlich");
+      return json_ok(berechneMonatsuebersicht(ss, monat, jahrM));
+    }
+
+    if (action === "aenderungenAb") {
+      if (!pruefeApiToken(token)) return json_err("Ungültiger oder fehlender Token");
+      var datumZ = String((e.parameter && e.parameter.datum) || "").trim();
+      var seitZ  = String((e.parameter && e.parameter.seit)  || "").trim();
+      if (!datumZ || !seitZ) return json_err("datum (DD.MM.YYYY) und seit (DD.MM.YYYY HH:MM) erforderlich");
+      var aend = berechneAenderungenAb(ss, datumZ, seitZ);
+      return json_ok({ datum: datumZ, seit: seitZ, anzahl: aend.length, aenderungen: aend });
+    }
+    // ────────────────────────────────────────────────────────────────
 
     // ── Standard: Bestellungen für Apartment abrufen (PIN-Validierung)
     if (!apt) return json_err("Kein Apartment angegeben");
