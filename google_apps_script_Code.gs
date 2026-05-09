@@ -492,16 +492,19 @@ function sichereBlaetter(ss) {
 
 // ──────────────────────────────────────────────
 // 10b. PIN-Validierung – prüft Apartment+PIN gegen Bewohner-Tab
+//      Rückgabe: Name bei Erfolg, leerer String bei Fehlschlag
 // ──────────────────────────────────────────────
 function validierePin(ss, apt, pin) {
   var sh = ss.getSheetByName("Bewohner");
-  if (!sh || sh.getLastRow() < 2) return false;
-  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
+  if (!sh || sh.getLastRow() < 2) return "";
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues();
   for (var i = 0; i < rows.length; i++) {
     if (String(rows[i][0]).trim() === apt &&
-        String(rows[i][1]).trim() === pin) return true;
+        String(rows[i][1]).trim() === pin) {
+      return String(rows[i][2] || "").trim() || apt;
+    }
   }
-  return false;
+  return "";
 }
 
 // ──────────────────────────────────────────────
@@ -532,7 +535,8 @@ function doGet(e) {
     // ── Standard: Bestellungen für Apartment abrufen (PIN-Validierung)
     if (!apt) return json_err("Kein Apartment angegeben");
     if (!pin) return json_err("Kein PIN angegeben");
-    if (!validierePin(ss, apt, pin)) return json_err("Ungültiges Apartment oder falscher PIN");
+    var name = validierePin(ss, apt, pin);
+    if (!name) return json_err("Ungültiges Apartment oder falscher PIN");
 
     var sheet = ss.getSheetByName("Bestellungen");
     var rows  = sheet.getDataRange().getValues();
@@ -555,7 +559,9 @@ function doGet(e) {
         });
       }
     }
-    return json_ok(out);
+    return ContentService
+      .createTextOutput(JSON.stringify({ok: true, name: name, data: out}))
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return json_err(err.message);
   }
@@ -575,6 +581,7 @@ function doPost(e) {
     var pin = String(data.pin       || "").trim();
     if (!apt || !pin) return json_err("Apartment und PIN erforderlich");
     if (!validierePin(ss, apt, pin)) return json_err("Ungültiges Apartment oder falscher PIN");
+    // Hinweis: validierePin gibt jetzt den Namen zurück (oder ""), Rückgabewert wird hier ignoriert
 
     var sheet = ss.getSheetByName("Bestellungen");
     var kw    = Number(data.kw);

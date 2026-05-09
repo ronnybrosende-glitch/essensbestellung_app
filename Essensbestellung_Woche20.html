@@ -659,12 +659,17 @@ function pinBestaetigen() {
       }
       err.style.display = "none";
 
-      // Name aus vorgeladener Bewohnerliste
-      var b = null;
-      for (var i = 0; i < BEWOHNER.length; i++) {
-        if (String(BEWOHNER[i].apartment).trim().toLowerCase() === apt.toLowerCase()) { b = BEWOHNER[i]; break; }
+      // Name aus Server-Antwort (vom GAS-Backend bei Validierung mitgeschickt)
+      var nameVomServer = String(j.name || "").trim();
+      if (!nameVomServer) {
+        // Fallback: Bewohnerliste lokal durchsuchen
+        for (var i = 0; i < BEWOHNER.length; i++) {
+          if (String(BEWOHNER[i].apartment).trim().toLowerCase() === apt.toLowerCase()) {
+            nameVomServer = BEWOHNER[i].name; break;
+          }
+        }
       }
-      state.pin = pin; state.name = b ? b.name : apt; state.apartment = apt;
+      state.pin = pin; state.name = nameVomServer || apt; state.apartment = apt;
 
       // Bereits vorhandene Bestellungen aus GAS-Antwort laden
       var wahlMap = {"Hauptmenü":"h","Alternative 1":"a1","Alternative 2":"a2","Kein Essen":"k"};
