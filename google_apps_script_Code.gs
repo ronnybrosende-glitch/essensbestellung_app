@@ -34,6 +34,18 @@ var WOCHE_NAME = "Wochenübersicht Küche";
 var MONAT_NAME = "Monatsübersicht Buchhaltung";
 var TAGE_DE    = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
+// Spiegel von MAHLZEITEN_STANDARD aus der HTML-App.
+// Wenn der Speiseplan sich ändert, müssen beide Stellen aktualisiert werden.
+var MENUE_PRO_WOCHENTAG = {
+  "Montag":     { vor: "Kartoffelsuppe",               nach: "Frisches Obst" },
+  "Dienstag":   { vor: "Kraftbrühe mit Grießklößchen", nach: "Naturjoghurt" },
+  "Mittwoch":   { vor: "Broccoli-Cremesuppe",          nach: "Kompott" },
+  "Donnerstag": { vor: "Kraftbrühe mit Flädle",        nach: "Fruchtjoghurt" },
+  "Freitag":    { vor: "Blumenkohl-Cremesuppe",        nach: "Frisches Obst" },
+  "Samstag":    { vor: "Tomaten-Cremesuppe",           nach: "Schokoladenpudding" },
+  "Sonntag":    { vor: "Kraftbrühe mit Backerbsen",    nach: "Frisches Obst" }
+};
+
 // ──────────────────────────────────────────────
 // 1. INIT – einmalig alle Tabs anlegen & befüllen
 // ──────────────────────────────────────────────
@@ -162,9 +174,9 @@ function initWochenuebersichtKueche(ss) {
   setDropdown(b.getRange("D1"), [2025, 2026, 2027, 2028, 2029, 2030]);
   b.getRange("B1").setNote("KW wechseln → Tabelle aktualisiert sich automatisch.");
 
-  // Zeile 3: Header
-  var header = ["Apartment","Name","Mo","Di","Mi","Do","Fr","Sa","So"];
-  b.getRange(3, 1, 1, header.length).setValues([header])
+  // Zeile 3: nur Apartment/Name fix – Wochentag-Header (mit Datum) wird in
+  // aktualisiereWochenuebersicht() dynamisch gesetzt
+  b.getRange(3, 1, 1, 2).setValues([["Apartment","Name"]])
     .setFontWeight("bold")
     .setBackground(FARBE_ANTHRA)
     .setFontColor("#FFFFFF")
@@ -266,6 +278,21 @@ function aktualisiereWochenuebersicht(ss) {
   var jahr  = Number(b.getRange("D1").getValue());
   if (!kw || !jahr) return;
 
+  // Header (Zeile 3) dynamisch mit Wochentag + Datum setzen
+  var mo = montagVonKW(kw, jahr);
+  var headerTage = TAGE_DE.map(function(tag, i){
+    var d = new Date(mo); d.setDate(mo.getDate() + i);
+    return tag + "\n" + fmtKurzDatum(d);
+  });
+  b.getRange(3, 1, 1, 9).setValues([["Apartment","Name"].concat(headerTage)])
+    .setFontWeight("bold")
+    .setBackground(FARBE_ANTHRA)
+    .setFontColor("#FFFFFF")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle")
+    .setWrap(true);
+  b.setRowHeight(3, 42);
+
   var bewohner = ladeBewohner(ss);
   if (bewohner.length === 0) {
     b.getRange(4, 1).setValue("Bitte zuerst Bewohner im Tab 'Bewohner' eintragen.")
@@ -275,12 +302,23 @@ function aktualisiereWochenuebersicht(ss) {
 
   var bestellungen = ladeBestellungen(ss);
 
-  // Index für schnelle Suche: key "Apt|Wochentag|KW|Jahr" → {menueTyp, menueName}
+  // Index für schnelle Suche: key "Apt|Wochentag|KW|Jahr" → o
   var idx = {};
   bestellungen.forEach(function(o){
     var key = o.apartment + "|" + o.wochentag + "|" + o.kw + "|" + o.jahr;
     idx[key] = o;
   });
+
+  // Zelleninhalt formatieren: Hauptgericht + ggf. Vor-/Nachspeise
+  function formatZelle(o, tag) {
+    if (!o) return "";
+    if (o.menueTyp === "Kein Essen") return "✗ Kein Essen";
+    var teile = [o.menueName || ""];
+    var menue = MENUE_PRO_WOCHENTAG[tag];
+    if (o.vorspeise  === "Ja" && menue) teile.push("✓ " + menue.vor);
+    if (o.nachspeise === "Ja" && menue) teile.push("✓ " + menue.nach);
+    return teile.join("\n");
+  }
 
   // Werte-Matrix bauen
   var matrix = [];
@@ -288,17 +326,17 @@ function aktualisiereWochenuebersicht(ss) {
     var zeile = [bw.apartment, bw.name];
     TAGE_DE.forEach(function(tag){
       var key = bw.apartment + "|" + tag + "|" + kw + "|" + jahr;
-      var o = idx[key];
-      if (!o) zeile.push("");
-      else if (o.menueTyp === "Kein Essen") zeile.push("✗ Kein Essen");
-      else zeile.push(o.menueName || "");
+      zeile.push(formatZelle(idx[key], tag));
     });
     matrix.push(zeile);
   });
 
   if (matrix.length > 0) {
     b.getRange(4, 1, matrix.length, 9).setValues(matrix);
-    b.getRange(4, 3, matrix.length, 7).setWrap(true).setVerticalAlignment("middle");
+    b.getRange(4, 3, matrix.length, 7).setWrap(true).setVerticalAlignment("top");
+    for (var r = 0; r < matrix.length; r++) {
+      b.setRowHeight(4 + r, 70); // Platz für Hauptgericht + Vor + Nach
+    }
   }
 }
 
@@ -472,6 +510,23 @@ function parseDatum(s) {
   return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
 }
 
+// Montag einer beliebigen ISO-KW (Inverse von isoWeekNumber)
+function montagVonKW(kw, jahr) {
+  var jan4 = new Date(jahr, 0, 4);
+  var dow  = jan4.getDay() || 7;
+  var mo1  = new Date(jan4);
+  mo1.setDate(jan4.getDate() - dow + 1);
+  var mo = new Date(mo1);
+  mo.setDate(mo1.getDate() + (kw - 1) * 7);
+  return mo;
+}
+
+// Datum kurz: "11.05.2026"
+function fmtKurzDatum(d) {
+  return ("0"+d.getDate()).slice(-2) + "." +
+         ("0"+(d.getMonth()+1)).slice(-2) + "." + d.getFullYear();
+}
+
 // ISO-Wochennummer (Donnerstag der Woche bestimmt das Jahr)
 function isoWeekNumber(d) {
   var t = new Date(d.getTime());
@@ -580,8 +635,10 @@ function doPost(e) {
     var apt = String(data.apartment || "").trim();
     var pin = String(data.pin       || "").trim();
     if (!apt || !pin) return json_err("Apartment und PIN erforderlich");
-    if (!validierePin(ss, apt, pin)) return json_err("Ungültiges Apartment oder falscher PIN");
-    // Hinweis: validierePin gibt jetzt den Namen zurück (oder ""), Rückgabewert wird hier ignoriert
+    var name = validierePin(ss, apt, pin);
+    if (!name) return json_err("Ungültiges Apartment oder falscher PIN");
+    // Wichtig: Der Name kommt IMMER aus der Bewohner-Tabelle (server-side),
+    // niemals aus data.name – damit kann der Client nichts Falsches schicken.
 
     var sheet = ss.getSheetByName("Bestellungen");
     var kw    = Number(data.kw);
@@ -605,7 +662,7 @@ function doPost(e) {
       if (!tag.wahl) continue;
       sheet.appendRow([
         tag.datum, tag.wochentag, kw, jahr,
-        apt, data.name || "",
+        apt, name,
         tag.menueTyp, tag.menueName,
         tag.vorspeise, tag.nachspeise,
         tag.preis, ts, typ
@@ -674,6 +731,46 @@ function repariereBestellungenStill(ss) {
 function aktualisiereJetzt() {
   aktualisiereUebersichten();
   SpreadsheetApp.getUi().alert("✅ Übersichten wurden aktualisiert.");
+}
+
+// ──────────────────────────────────────────────
+// 15. Reparatur: Namen in Bestellungen aus Bewohner-Tab auffüllen
+//     (falls fehlerhafte Apartment-Nummer als Name gespeichert wurde)
+// ──────────────────────────────────────────────
+function repariereNamen() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Bestellungen");
+  var bw    = ss.getSheetByName("Bewohner");
+  if (!sheet || !bw) {
+    SpreadsheetApp.getUi().alert("Tab 'Bestellungen' oder 'Bewohner' fehlt.");
+    return;
+  }
+  var lr = sheet.getLastRow();
+  if (lr < 2) { SpreadsheetApp.getUi().alert("Keine Bestellungen vorhanden."); return; }
+
+  // Apartment → Name Mapping aus Bewohner-Tab
+  var bwRows = bw.getRange(2, 1, bw.getLastRow() - 1, 3).getValues();
+  var aptZuName = {};
+  bwRows.forEach(function(r){
+    var apt  = String(r[0] || "").trim();
+    var name = String(r[2] || "").trim();
+    if (apt && name) aptZuName[apt] = name;
+  });
+
+  var rng = sheet.getRange(2, 5, lr - 1, 2); // Spalten E (Apartment) + F (Name)
+  var werte = rng.getValues();
+  var korrigiert = 0;
+  werte.forEach(function(r, i){
+    var apt = String(r[0]).trim();
+    var name = String(r[1]).trim();
+    var richtigerName = aptZuName[apt];
+    if (richtigerName && name !== richtigerName) {
+      werte[i][1] = richtigerName;
+      korrigiert++;
+    }
+  });
+  if (korrigiert > 0) rng.setValues(werte);
+  SpreadsheetApp.getUi().alert("✅ " + korrigiert + " Namen aus Bewohner-Tab korrigiert.");
 }
 
 // ──────────────────────────────────────────────
